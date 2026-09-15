@@ -1,0 +1,11 @@
+# local runtime / IDE junk
+.expo/
+.idea/
+.claude-dev-helper/
+
+# local server artifacts
+server-launch.cmd
+expo-start.log
+
+# OS
+.DS_Store
