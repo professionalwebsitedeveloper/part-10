@@ -1,0 +1,49 @@
+name: "Exercise 7: Scrollable app bar"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-7:
+    name: Exercise 7 - Scrollable app bar
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the app bar tabs are wrapped in a horizontal ScrollView
+        run: |
+          grep -q "ScrollView" src/components/AppBar.jsx
+          grep -q "horizontal" src/components/AppBar.jsx
+          grep -q "scrollView" src/components/AppBar.jsx
+
+      - name: Check the app bar still contains its tabs and navigation
+        run: |
+          grep -q "Repositories" src/components/AppBar.jsx
+          grep -q "Sign in" src/components/AppBar.jsx
+          grep -q "Link" src/components/AppBar.jsx
+          grep -q "Pressable" src/components/AppBar.jsx
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
