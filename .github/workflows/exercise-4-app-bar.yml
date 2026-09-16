@@ -1,0 +1,48 @@
+name: "Exercise: 4 The app bar"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-4:
+    name: Exercise 4 - The app bar
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the app bar exists and is wired to Main
+        run: |
+          test -f src/components/AppBar.jsx
+          grep -q "Pressable" src/components/AppBar.jsx
+          grep -q "Repositories" src/components/AppBar.jsx
+          grep -q "Constants.statusBarHeight" src/components/AppBar.jsx
+          grep -q "AppBar" src/components/Main.jsx
+          if grep -q "marginTop" src/components/Main.jsx; then
+            echo "Main should no longer set marginTop (the AppBar handles the status bar height)"
+            exit 1
+          fi
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
