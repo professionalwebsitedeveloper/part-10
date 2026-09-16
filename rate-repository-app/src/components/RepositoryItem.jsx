@@ -1,10 +1,21 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+
+import Statistic from './Statistic';
+import Text from './Text';
+import theme from '../theme';
+
+const formatNumber = (value) => {
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}k`;
+  }
+  return String(value);
+};
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f6f6f6',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 4,
+    padding: 16,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -15,35 +26,31 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     backgroundColor: '#e4e4e4',
   },
-  headerTextContainer: {
+  infoContainer: {
     flex: 1,
-    marginLeft: 10,
-  },
-  fullName: {
-    fontWeight: 'bold',
-    fontSize: 18,
+    marginLeft: 12,
   },
   description: {
-    marginTop: 5,
+    marginTop: 4,
   },
   language: {
     alignSelf: 'flex-start',
-    color: '#666',
-    fontWeight: '700',
-    marginTop: 5,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
-  footerContainer: {
+  languageText: {
+    color: '#ffffff',
+  },
+  statisticsContainer: {
+    backgroundColor: '#f0f0f0',
+    borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-  },
-  footerItem: {
-    flex: 1,
-  },
-  footerValue: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  footerLabel: {
-    textAlign: 'center',
+    marginTop: 12,
+    paddingBottom: 8,
+    paddingTop: 8,
   },
 });
 
@@ -55,29 +62,23 @@ const RepositoryItem = ({ repository }) => {
           style={styles.avatar}
           source={{ uri: repository.ownerAvatarUrl }}
         />
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.fullName}>{repository.fullName}</Text>
-          <Text style={styles.description}>{repository.description}</Text>
-          <Text style={styles.language}>{repository.language}</Text>
+        <View style={styles.infoContainer}>
+          <Text fontWeight="bold" fontSize="subheading">
+            {repository.fullName}
+          </Text>
+          <Text color="textSecondary" style={styles.description}>
+            {repository.description}
+          </Text>
+          <View style={styles.language}>
+            <Text style={styles.languageText}>{repository.language}</Text>
+          </View>
         </View>
       </View>
-      <View style={styles.footerContainer}>
-        <View style={styles.footerItem}>
-          <Text style={styles.footerValue}>{repository.stargazersCount}</Text>
-          <Text style={styles.footerLabel}>Stars</Text>
-        </View>
-        <View style={styles.footerItem}>
-          <Text style={styles.footerValue}>{repository.forksCount}</Text>
-          <Text style={styles.footerLabel}>Forks</Text>
-        </View>
-        <View style={styles.footerItem}>
-          <Text style={styles.footerValue}>{repository.reviewCount}</Text>
-          <Text style={styles.footerLabel}>Reviews</Text>
-        </View>
-        <View style={styles.footerItem}>
-          <Text style={styles.footerValue}>{repository.ratingAverage}</Text>
-          <Text style={styles.footerLabel}>Rating</Text>
-        </View>
+      <View style={styles.statisticsContainer}>
+        <Statistic label="Stars" value={formatNumber(repository.stargazersCount)} />
+        <Statistic label="Forks" value={formatNumber(repository.forksCount)} />
+        <Statistic label="Reviews" value={formatNumber(repository.reviewCount)} />
+        <Statistic label="Rating" value={String(repository.ratingAverage)} />
       </View>
     </View>
   );
