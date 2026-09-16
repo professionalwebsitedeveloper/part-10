@@ -39,7 +39,7 @@ jobs:
       - name: Check the sign-in view and its route exist
         run: |
           test -f src/components/SignIn.jsx
-          grep -q "The sign-in view" src/components/SignIn.jsx
+          grep -q "export default SignIn" src/components/SignIn.jsx
           grep -q "SignIn" src/components/Main.jsx
           grep -q "Routes" src/components/Main.jsx
           grep -q "Route" src/components/Main.jsx
