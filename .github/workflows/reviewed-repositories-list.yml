@@ -1,0 +1,57 @@
+name: The reviewed repositories list
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-3:
+    name: Exercise 3 - The reviewed repositories list
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS.
+        run: npm install --no-audit --no-fund
+
+      - name: Check required components exist
+        run: |
+          test -f src/components/Main.jsx
+          test -f src/components/RepositoryList.jsx
+          test -f src/components/RepositoryItem.jsx
+          grep -q "import Main from './src/components/Main'" App.js
+
+      - name: Check the list renders the required repository fields
+        run: |
+          grep -q "FlatList" src/components/RepositoryList.jsx
+          grep -q "renderItem" src/components/RepositoryList.jsx
+          grep -q "RepositoryItem" src/components/RepositoryList.jsx
+          grep -q "RepositoryList" src/components/Main.jsx
+          grep -q "fullName" src/components/RepositoryItem.jsx
+          grep -q "description" src/components/RepositoryItem.jsx
+          grep -q "language" src/components/RepositoryItem.jsx
+          grep -q "stargazersCount" src/components/RepositoryItem.jsx
+          grep -q "forksCount" src/components/RepositoryItem.jsx
+          grep -q "reviewCount" src/components/RepositoryItem.jsx
+          grep -q "ratingAverage" src/components/RepositoryItem.jsx
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
