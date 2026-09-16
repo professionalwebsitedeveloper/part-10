@@ -24,7 +24,10 @@ jobs:
           cache-dependency-path: rate-repository-app/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS.
+        run: npm install --no-audit --no-fund
 
       - name: Verify the application initializes (bundle the app)
         run: npx expo export --platform web
