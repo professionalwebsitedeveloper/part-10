@@ -19,7 +19,8 @@
     "react-dom": "19.2.0",
     "react-native": "0.83.10",
     "react-native-web": "^0.21.0",
-    "react-router-native": "^6.30.6"
+    "react-router-native": "^6.30.6",
+    "yup": "^1.7.1"
   },
   "private": true,
   "devDependencies": {
