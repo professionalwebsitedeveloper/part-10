@@ -1,0 +1,44 @@
+name: "Exercise 10: A platform-specific font"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-10:
+    name: Exercise 10 - A platform-specific font
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the platform-specific font is configured in the theme
+        run: |
+          grep -q "Platform" src/theme.js
+          grep -q "Platform.select" src/theme.js
+          grep -q "android: 'Roboto'" src/theme.js
+          grep -q "ios: 'Arial'" src/theme.js
+          grep -q "default: 'System'" src/theme.js
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
