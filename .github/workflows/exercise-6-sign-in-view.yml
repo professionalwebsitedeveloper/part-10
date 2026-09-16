@@ -1,0 +1,58 @@
+name: "Exercise: 6 The sign-in view"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-6:
+    name: Exercise 6 - The sign-in view
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the router and status bar are set up
+        run: |
+          grep -q "react-router-native" package.json
+          grep -q "NativeRouter" App.js
+          grep -q "StatusBar" App.js
+          grep -q "style=" App.js
+
+      - name: Check the sign-in view and its route exist
+        run: |
+          test -f src/components/SignIn.jsx
+          grep -q "The sign-in view" src/components/SignIn.jsx
+          grep -q "SignIn" src/components/Main.jsx
+          grep -q "Routes" src/components/Main.jsx
+          grep -q "Route" src/components/Main.jsx
+          grep -q "Navigate" src/components/Main.jsx
+
+      - name: Check the app bar has a Sign in tab with a Link
+        run: |
+          grep -q "Sign in" src/components/AppBar.jsx
+          grep -q "Link" src/components/AppBar.jsx
+          grep -q "Repositories" src/components/AppBar.jsx
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
