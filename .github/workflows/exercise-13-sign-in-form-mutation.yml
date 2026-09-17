@@ -1,0 +1,56 @@
+name: "Exercise 13: The sign in form mutation"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-13:
+    name: Exercise 13 - The sign in form mutation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the authenticate mutation is defined
+        run: |
+          test -f src/graphql/mutations.js
+          grep -q "gql" src/graphql/mutations.js
+          grep -q "authenticate" src/graphql/mutations.js
+          grep -q "credentials" src/graphql/mutations.js
+          grep -q "accessToken" src/graphql/mutations.js
+
+      - name: Check the useSignIn hook uses useMutation and returns [signIn, result]
+        run: |
+          test -f src/hooks/useSignIn.js
+          grep -q "useMutation" src/hooks/useSignIn.js
+          grep -q "signIn" src/hooks/useSignIn.js
+          grep -q "return \[signIn, result\]" src/hooks/useSignIn.js
+
+      - name: Check the SignIn component uses the useSignIn hook
+        run: |
+          grep -q "useSignIn" src/components/SignIn.jsx
+          grep -q "await signIn" src/components/SignIn.jsx
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
