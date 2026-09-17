@@ -1,0 +1,76 @@
+name: "Exercise 11: Fetching repositories with Apollo Client"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-11:
+    name: Exercise 11 - Fetching repositories with Apollo Client
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check Apollo Client and GraphQL are installed
+        run: |
+          grep -q "@apollo/client" package.json
+          grep -q "graphql" package.json
+
+      - name: Check the GraphQL query fetches the required repository fields
+        run: |
+          test -f src/graphql/queries.js
+          grep -q "gql" src/graphql/queries.js
+          grep -q "GET_REPOSITORIES" src/graphql/queries.js
+          grep -q "repositories {" src/graphql/queries.js
+          grep -q "fullName" src/graphql/queries.js
+          grep -q "description" src/graphql/queries.js
+          grep -q "language" src/graphql/queries.js
+          grep -q "ownerAvatarUrl" src/graphql/queries.js
+          grep -q "stargazersCount" src/graphql/queries.js
+          grep -q "forksCount" src/graphql/queries.js
+          grep -q "reviewCount" src/graphql/queries.js
+          grep -q "ratingAverage" src/graphql/queries.js
+
+      - name: Check the useRepositories hook uses useQuery with cache-and-network
+        run: |
+          test -f src/hooks/useRepositories.js
+          grep -q "useQuery" src/hooks/useRepositories.js
+          grep -q "GET_REPOSITORIES" src/hooks/useRepositories.js
+          grep -q "cache-and-network" src/hooks/useRepositories.js
+
+      - name: Check the Apollo Client is created and provided with ApolloProvider
+        run: |
+          test -f src/utils/apolloClient.js
+          grep -q "ApolloClient" src/utils/apolloClient.js
+          grep -q "createApolloClient" src/utils/apolloClient.js
+          grep -q "ApolloProvider" App.js
+          grep -q "createApolloClient" App.js
+
+      - name: Check the repository list is fetched with the useRepositories hook
+        run: |
+          grep -q "useRepositories" src/components/RepositoryList.jsx
+          grep -q "edges.map" src/components/RepositoryList.jsx
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
