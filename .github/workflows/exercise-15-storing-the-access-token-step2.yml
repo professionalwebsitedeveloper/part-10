@@ -1,0 +1,72 @@
+name: "Exercise 15: Storing the access token step2"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-15:
+    name: Exercise 15 - Storing the access token step2
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the AuthStorage context and useAuthStorage hook are set up
+        run: |
+          test -f src/contexts/AuthStorageContext.js
+          grep -q "createContext" src/contexts/AuthStorageContext.js
+          test -f src/hooks/useAuthStorage.js
+          grep -q "useContext" src/hooks/useAuthStorage.js
+          grep -q "AuthStorageContext" src/hooks/useAuthStorage.js
+
+      - name: Check the Apollo Client sends the access token in the Authorization header
+        run: |
+          grep -q "SetContextLink" src/utils/apolloClient.js
+          grep -q "createApolloClient = (authStorage)" src/utils/apolloClient.js
+          grep -q "authorization" src/utils/apolloClient.js
+          grep -q "Bearer" src/utils/apolloClient.js
+          grep -q "authLink.concat" src/utils/apolloClient.js
+
+      - name: Check the App provides the AuthStorage through the context
+        run: |
+          grep -q "new AuthStorage()" App.js
+          grep -q "createApolloClient(authStorage)" App.js
+          grep -q "AuthStorageContext.Provider" App.js
+          grep -q "value={authStorage}" App.js
+
+      - name: Check the useSignIn hook stores the token and resets the store
+        run: |
+          grep -q "useAuthStorage" src/hooks/useSignIn.js
+          grep -q "useApolloClient" src/hooks/useSignIn.js
+          grep -q "setAccessToken" src/hooks/useSignIn.js
+          grep -q "resetStore" src/hooks/useSignIn.js
+          grep -q "return \[signIn, result\]" src/hooks/useSignIn.js
+
+      - name: Check the SignIn component redirects after a successful sign in
+        run: |
+          grep -q "useNavigate" src/components/SignIn.jsx
+          grep -q "navigate('/'" src/components/SignIn.jsx
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
