@@ -1,0 +1,56 @@
+name: "Exercise 14: Storing the access token step1"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-14:
+    name: Exercise 14 - Storing the access token step1
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check AsyncStorage is installed
+        run: |
+          grep -q "@react-native-async-storage/async-storage" package.json
+
+      - name: Check the AuthStorage class is defined
+        run: |
+          test -f src/utils/authStorage.js
+          grep -q "AsyncStorage" src/utils/authStorage.js
+          grep -q "class AuthStorage" src/utils/authStorage.js
+          grep -q "this.namespace" src/utils/authStorage.js
+
+      - name: Check the AuthStorage methods use namespaced keys
+        run: |
+          grep -q "getAccessToken" src/utils/authStorage.js
+          grep -q "setAccessToken" src/utils/authStorage.js
+          grep -q "removeAccessToken" src/utils/authStorage.js
+          grep -q "getItem" src/utils/authStorage.js
+          grep -q "setItem" src/utils/authStorage.js
+          grep -q "removeItem" src/utils/authStorage.js
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
