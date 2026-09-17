@@ -1,0 +1,45 @@
+name: "Exercise 12: Environment variables"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-12:
+    name: Exercise 12 - Environment variables
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the environment variable is defined in the .env file
+        run: |
+          test -f .env
+          grep -q "EXPO_PUBLIC_APOLLO_URI=" .env
+
+      - name: Check the Apollo Client uses the environment variable
+        run: |
+          grep -q "process.env.EXPO_PUBLIC_APOLLO_URI" src/utils/apolloClient.js
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
