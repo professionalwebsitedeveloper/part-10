@@ -1,0 +1,68 @@
+name: "Exercise 25: The user's reviews view"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-25-my-reviews:
+    name: Exercise 25 - The user's reviews view
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the my reviews view exists
+        run: |
+          test -f src/components/MyReviews.jsx
+          grep -q "FlatList" src/components/MyReviews.jsx
+          grep -q "ReviewItem" src/components/MyReviews.jsx
+          grep -q "useMe" src/components/MyReviews.jsx
+          grep -q "includeReviews" src/components/MyReviews.jsx
+          grep -q "reviews" src/components/MyReviews.jsx
+
+      - name: Check the me query fetches reviews conditionally
+        run: |
+          grep -q "ME" src/graphql/queries.js
+          grep -q "reviews" src/graphql/queries.js
+          grep -q "includeReviews" src/graphql/queries.js
+          grep -Fq "@include(if: \$includeReviews)" src/graphql/queries.js
+
+      - name: Check the useMe hook supports the includeReviews variable
+        run: |
+          test -f src/hooks/useMe.js
+          grep -q "includeReviews" src/hooks/useMe.js
+          grep -q "useQuery" src/hooks/useMe.js
+
+      - name: Check the my reviews tab and route are registered
+        run: |
+          grep -q "My reviews" src/components/AppBar.jsx
+          grep -q "my-reviews" src/components/AppBar.jsx
+          grep -q "MyReviews" src/components/Main.jsx
+          grep -q "my-reviews" src/components/Main.jsx
+
+      - name: Run tests
+        run: npm test -- --ci
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
