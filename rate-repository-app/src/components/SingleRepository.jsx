@@ -1,7 +1,8 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { useParams } from 'react-router-native';
 
 import RepositoryItem from './RepositoryItem';
+import ReviewItem from './ReviewItem';
 import useRepository from '../hooks/useRepository';
 
 const styles = StyleSheet.create({
@@ -12,6 +13,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
+  },
+  separator: {
+    height: 10,
   },
 });
 
@@ -27,10 +31,19 @@ const SingleRepository = () => {
     );
   }
 
+  const reviews = repository.reviews.edges.map((edge) => edge.node);
+
   return (
-    <View style={styles.container}>
-      <RepositoryItem repository={repository} githubUrl={repository?.url} />
-    </View>
+    <FlatList
+      style={styles.container}
+      data={reviews}
+      renderItem={({ item }) => <ReviewItem review={item} />}
+      keyExtractor={({ id }) => id}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      ListHeaderComponent={() => (
+        <RepositoryItem repository={repository} githubUrl={repository.url} />
+      )}
+    />
   );
 };
 
