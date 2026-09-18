@@ -1,4 +1,5 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import * as Linking from 'expo-linking';
 
 import Statistic from './Statistic';
 import Text from './Text';
@@ -52,9 +53,23 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     paddingTop: 8,
   },
+  githubButton: {
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
+    marginTop: 12,
+    padding: 12,
+  },
+  githubButtonText: {
+    color: '#ffffff',
+  },
 });
 
-const RepositoryItem = ({ repository }) => {
+const openRepositoryInGithub = (url) => {
+  Linking.openURL(url);
+};
+
+const RepositoryItem = ({ repository, githubUrl }) => {
   return (
     <View testID="repositoryItem" style={styles.container}>
       <View style={styles.headerContainer}>
@@ -80,6 +95,14 @@ const RepositoryItem = ({ repository }) => {
         <Statistic label="Reviews" value={formatNumber(repository.reviewCount)} />
         <Statistic label="Rating" value={String(repository.ratingAverage)} />
       </View>
+      {githubUrl && (
+        <Pressable
+          onPress={() => openRepositoryInGithub(githubUrl)}
+          style={styles.githubButton}
+        >
+          <Text style={styles.githubButtonText}>Open in GitHub</Text>
+        </Pressable>
+      )}
     </View>
   );
 };
