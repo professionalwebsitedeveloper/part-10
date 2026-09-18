@@ -1,0 +1,71 @@
+name: "Exercise 26: Review actions"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-26-review-actions:
+    name: Exercise 26 - Review actions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the delete review mutation is defined
+        run: |
+          grep -q "DELETE_REVIEW" src/graphql/mutations.js
+          grep -q "deleteReview" src/graphql/mutations.js
+          grep -Fq "deleteReview(id: \$id)" src/graphql/mutations.js
+
+      - name: Check the useDeleteReview hook exists
+        run: |
+          test -f src/hooks/useDeleteReview.js
+          grep -q "useMutation" src/hooks/useDeleteReview.js
+          grep -q "DELETE_REVIEW" src/hooks/useDeleteReview.js
+          grep -q "deleteReview" src/hooks/useDeleteReview.js
+
+      - name: Check the review actions are implemented
+        run: |
+          test -f src/components/MyReviewItem.jsx
+          grep -q "ReviewItem" src/components/MyReviewItem.jsx
+          grep -q "Alert" src/components/MyReviewItem.jsx
+          grep -q "Alert.alert" src/components/MyReviewItem.jsx
+          grep -q "View repository" src/components/MyReviewItem.jsx
+          grep -q "Delete review" src/components/MyReviewItem.jsx
+          grep -q "onDelete" src/components/MyReviewItem.jsx
+          grep -q "repositoryId" src/components/MyReviewItem.jsx
+          grep -q "useNavigate" src/components/MyReviewItem.jsx
+
+      - name: Check the my reviews view uses the review actions
+        run: |
+          grep -q "MyReviewItem" src/components/MyReviews.jsx
+          grep -q "useDeleteReview" src/components/MyReviews.jsx
+          grep -q "onDelete" src/components/MyReviews.jsx
+          grep -q "refetch" src/components/MyReviews.jsx
+
+      - name: Run tests
+        run: npm test -- --ci
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web

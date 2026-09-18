@@ -25,6 +25,12 @@ export const CREATE_REVIEW = gql`
   }
 `;
 
+export const DELETE_REVIEW = gql`
+  mutation deleteReview($id: ID!) {
+    deleteReview(id: $id)
+  }
+`;
+
 export const AUTHENTICATE = gql`
   mutation authenticate($credentials: AuthenticateInput) {
     authenticate(credentials: $credentials) {

@@ -1,6 +1,7 @@
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
-import ReviewItem from './ReviewItem';
+import MyReviewItem from './MyReviewItem';
+import useDeleteReview from '../hooks/useDeleteReview';
 import useMe from '../hooks/useMe';
 
 const styles = StyleSheet.create({
@@ -18,7 +19,17 @@ const styles = StyleSheet.create({
 });
 
 const MyReviews = () => {
-  const { me, loading } = useMe({ includeReviews: true });
+  const { me, loading, refetch } = useMe({ includeReviews: true });
+  const [deleteReview] = useDeleteReview();
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteReview({ id });
+      await refetch();
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
   if (loading && !me?.reviews) {
     return (
@@ -34,7 +45,9 @@ const MyReviews = () => {
     <FlatList
       style={styles.container}
       data={reviews}
-      renderItem={({ item }) => <ReviewItem review={item} />}
+      renderItem={({ item }) => (
+        <MyReviewItem review={item} onDelete={handleDelete} />
+      )}
       keyExtractor={({ id }) => id}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
     />
