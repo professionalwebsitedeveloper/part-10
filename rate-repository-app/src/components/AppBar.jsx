@@ -51,6 +51,7 @@ const AppBar = () => {
     <View style={styles.container}>
       <ScrollView horizontal style={styles.scrollView}>
         <AppBarTab to="/">Repositories</AppBarTab>
+        {me && <AppBarTab to="/create-review">Create a review</AppBarTab>}
         {me ? (
           <Pressable onPress={signOut} style={styles.tab}>
             <Text style={styles.tabText}>Sign out</Text>
