@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigate } from 'react-router-native';
+import { useDebounce } from 'use-debounce';
 
 import RepositoryItem from './RepositoryItem';
 import useRepositories from '../hooks/useRepositories';
@@ -9,6 +10,15 @@ import useRepositories from '../hooks/useRepositories';
 const styles = StyleSheet.create({
   separator: {
     height: 10,
+  },
+  searchInput: {
+    backgroundColor: '#ffffff',
+    borderColor: '#cccccc',
+    borderRadius: 4,
+    borderWidth: 1,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 });
 
@@ -26,6 +36,8 @@ export const RepositoryListContainer = ({
   pickerValues: containerPickerValues,
   selectedValue,
   onValueChange,
+  searchKeyword,
+  onSearchChange,
 }) => {
   const repositoryNodes = repositories
     ? repositories.edges.map((edge) => edge.node)
@@ -42,22 +54,32 @@ export const RepositoryListContainer = ({
       )}
       keyExtractor={({ id }) => id}
       ListHeaderComponent={
-        containerPickerValues && selectedValue && onValueChange ? (
-          <Picker
-            testID="repository-sort-picker"
-            accessibilityLabel="Sort repositories"
-            selectedValue={selectedValue}
-            onValueChange={(itemValue) => onValueChange(itemValue)}
-          >
-            {containerPickerValues.map((value) => (
-              <Picker.Item
-                key={value.label}
-                label={value.label}
-                value={value.value}
-              />
-            ))}
-          </Picker>
-        ) : undefined
+        <>
+          {onSearchChange && (
+            <TextInput
+              placeholder="Search"
+              value={searchKeyword}
+              onChangeText={onSearchChange}
+              style={styles.searchInput}
+            />
+          )}
+          {containerPickerValues && selectedValue && onValueChange ? (
+            <Picker
+              testID="repository-sort-picker"
+              accessibilityLabel="Sort repositories"
+              selectedValue={selectedValue}
+              onValueChange={(itemValue) => onValueChange(itemValue)}
+            >
+              {containerPickerValues.map((value) => (
+                <Picker.Item
+                  key={value.label}
+                  label={value.label}
+                  value={value.value}
+                />
+              ))}
+            </Picker>
+          ) : null}
+        </>
       }
     />
   );
@@ -76,8 +98,13 @@ const getSortVariables = (sortOrder) => {
 
 const RepositoryList = () => {
   const [sortOrder, setSortOrder] = useState('latest');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [debouncedSearchKeyword] = useDebounce(searchKeyword, 500);
 
-  const { repositories } = useRepositories(getSortVariables(sortOrder));
+  const { repositories } = useRepositories({
+    ...getSortVariables(sortOrder),
+    searchKeyword: debouncedSearchKeyword,
+  });
   const navigate = useNavigate();
 
   const onPressRepository = (id) => {
@@ -91,6 +118,8 @@ const RepositoryList = () => {
       pickerValues={pickerValues}
       selectedValue={sortOrder}
       onValueChange={setSortOrder}
+      searchKeyword={searchKeyword}
+      onSearchChange={setSearchKeyword}
     />
   );
 };

@@ -1,0 +1,61 @@
+name: "Exercise 24: Filtering the reviewed repositories list"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-24-filtering:
+    name: Exercise 24 - Filtering the reviewed repositories list
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the use-debounce library is installed
+        run: |
+          grep -q "use-debounce" package.json
+
+      - name: Check the repository list supports filtering by keyword
+        run: |
+          grep -q "useState" src/components/RepositoryList.jsx
+          grep -q "useDebounce" src/components/RepositoryList.jsx
+          grep -q "use-debounce" src/components/RepositoryList.jsx
+          grep -q "searchKeyword" src/components/RepositoryList.jsx
+          grep -q "500" src/components/RepositoryList.jsx
+          grep -q "TextInput" src/components/RepositoryList.jsx
+          grep -q "onChangeText" src/components/RepositoryList.jsx
+          grep -q "ListHeaderComponent" src/components/RepositoryList.jsx
+          grep -q "searchKeyword" src/graphql/queries.js
+
+      - name: Check the repositories query accepts the searchKeyword argument
+        run: |
+          grep -q "searchKeyword: String" src/graphql/queries.js
+          grep -q "repositories(" src/graphql/queries.js
+          grep -Fq "repositories {" src/graphql/queries.js
+
+      - name: Run tests
+        run: npm test -- --ci
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
