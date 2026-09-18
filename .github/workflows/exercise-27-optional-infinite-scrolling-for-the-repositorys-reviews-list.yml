@@ -1,0 +1,87 @@
+name: "Exercise 27: OPTIONAL: Infinite scrolling for the repository's reviews list"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-27-infinite-scrolling:
+    name: Exercise 27 - OPTIONAL - Infinite scrolling for the repository's reviews list
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the cache has the relay style pagination field policies
+        run: |
+          grep -q "relayStylePagination" src/utils/apolloClient.js
+          grep -q "@apollo/client/utilities" src/utils/apolloClient.js
+          grep -q "typePolicies" src/utils/apolloClient.js
+          grep -q "repositories: relayStylePagination()" src/utils/apolloClient.js
+          grep -q "reviews: relayStylePagination()" src/utils/apolloClient.js
+
+      - name: Check the repository query paginates the reviews field
+        run: |
+          grep -q "\$first: Int" src/graphql/queries.js
+          grep -q "\$after: String" src/graphql/queries.js
+          grep -Fq "reviews(first: \$first, after: \$after)" src/graphql/queries.js
+          grep -q "pageInfo" src/graphql/queries.js
+          grep -q "endCursor" src/graphql/queries.js
+          grep -q "startCursor" src/graphql/queries.js
+          grep -q "hasNextPage" src/graphql/queries.js
+          grep -q "cursor" src/graphql/queries.js
+          grep -q "totalCount" src/graphql/queries.js
+
+      - name: Check the useRepository hook returns a decorated fetchMore
+        run: |
+          test -f src/hooks/useRepository.js
+          grep -q "fetchMore" src/hooks/useRepository.js
+          grep -q "GET_REPOSITORY" src/hooks/useRepository.js
+          grep -q "canFetchMore" src/hooks/useRepository.js
+          grep -q "hasNextPage" src/hooks/useRepository.js
+          grep -q "endCursor" src/hooks/useRepository.js
+          grep -Fq "after: data.repository.reviews.pageInfo.endCursor" src/hooks/useRepository.js
+          grep -q "variables" src/hooks/useRepository.js
+
+      - name: Check the single repository view uses infinite scrolling
+        run: |
+          grep -q "fetchMore" src/components/SingleRepository.jsx
+          grep -q "onEndReached" src/components/SingleRepository.jsx
+          grep -q "onEndReachedThreshold" src/components/SingleRepository.jsx
+          grep -q "first: 5" src/components/SingleRepository.jsx
+          grep -q "FlatList" src/components/SingleRepository.jsx
+          grep -q "ReviewItem" src/components/SingleRepository.jsx
+
+      - name: Check the cursor based pagination is covered by a test
+        run: |
+          test -f src/__tests__/hooks/useRepository.test.jsx
+          grep -q "useRepository" src/__tests__/hooks/useRepository.test.jsx
+          grep -q "fetchMore" src/__tests__/hooks/useRepository.test.jsx
+          grep -q "endCursor" src/__tests__/hooks/useRepository.test.jsx
+          grep -q "after" src/__tests__/hooks/useRepository.test.jsx
+
+      - name: Run tests
+        run: npm test -- --ci
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web

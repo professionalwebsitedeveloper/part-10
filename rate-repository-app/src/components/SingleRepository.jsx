@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
 
 const SingleRepository = () => {
   const { id } = useParams();
-  const { repository, loading } = useRepository(id);
+  const { repository, loading, fetchMore } = useRepository(id, { first: 5 });
 
   if (loading && !repository) {
     return (
@@ -40,6 +40,8 @@ const SingleRepository = () => {
       renderItem={({ item }) => <ReviewItem review={item} />}
       keyExtractor={({ id }) => id}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
+      onEndReached={fetchMore}
+      onEndReachedThreshold={0.5}
       ListHeaderComponent={() => (
         <RepositoryItem repository={repository} githubUrl={repository.url} />
       )}
