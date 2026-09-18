@@ -1,0 +1,54 @@
+name: "Exercise 23: Sorting the reviewed repositories list"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  exercise-23-sorting:
+    name: Exercise 23 - Sorting the reviewed repositories list
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile (generated
+        # on a local machine) must be reconciled for the runner's OS before linting.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the repository list supports sorting by latest and rating
+        run: |
+          grep -q "useState" src/components/RepositoryList.jsx
+          grep -q "orderBy" src/components/RepositoryList.jsx
+          grep -q "orderDirection" src/components/RepositoryList.jsx
+          grep -q "CREATED_AT" src/components/RepositoryList.jsx
+          grep -q "RATING_AVERAGE" src/components/RepositoryList.jsx
+          grep -q "DESC" src/components/RepositoryList.jsx
+          grep -q "ASC" src/components/RepositoryList.jsx
+          grep -q "orderBy" src/graphql/queries.js
+          grep -q "orderDirection" src/graphql/queries.js
+          grep -q "ListHeaderComponent" src/components/RepositoryList.jsx
+          grep -q "Picker" src/components/RepositoryList.jsx
+          grep -q "useRepositories" src/components/RepositoryList.jsx
+
+      - name: Run tests
+        run: npm test -- --ci
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
