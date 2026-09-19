@@ -12,8 +12,12 @@
  *      to the EAS project of app.json and to its `main` branch,
  *   4. the EAS Update servers really serve the update the QR code points to,
  *      which is exactly what the course instructor scans to open the
- *      application with Expo Go, and
- *   5. the pre-deployed Rate Repository API, which is the backend of the
+ *      application with Expo Go,
+ *   5. the JavaScript bundle that Expo Go downloads for the QR code requests
+ *      the pre-deployed Rate Repository API documented in README.md instead of
+ *      a local development API, which would not work on someone else's phone,
+ *      and
+ *   6. the pre-deployed Rate Repository API, which is the backend of the
  *      published application, responds.
  *
  * Usage from the rate-repository-app directory:
@@ -76,6 +80,53 @@ const decodeQrCode = (file) => {
     height: png.height,
   };
 };
+
+// The manifest of EAS Update is a multipart/mixed document whose parts are the
+// manifest itself and the extensions (for example, the authorization token that
+// expo-updates sends when it downloads the assets of the update).
+const partsFromManifest = (body) => {
+  const parts = {};
+
+  for (const part of body.split(/\r?\n\r?\n/)) {
+    const start = part.indexOf('{');
+    const end = part.lastIndexOf('}');
+
+    if (start === -1 || end === -1) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(part.slice(start, end + 1));
+
+      if (parsed.launchAsset) {
+        parts.manifest = parsed;
+      } else if (parsed.assetRequestHeaders) {
+        parts.extensions = parsed;
+      }
+    } catch {
+      // Not a JSON part of the multipart document.
+    }
+  }
+
+  return parts;
+};
+
+// The pre-deployed Rate Repository API that the published application uses as
+// its backend is documented in the README.md of the repository.
+const documentedApiUri = (markdown) => {
+  const match = markdown.match(
+    /https:\/\/rate-repository-api-[^\s`)"'[\]]+/,
+  );
+
+  return match ? match[0] : RATE_REPOSITORY_API;
+};
+
+// A local development API cannot be reached from the phone of someone else.
+const localApiUriPatterns = [
+  /http:\/\/localhost:\d+/,
+  /http:\/\/127\.0\.0\.1:\d+/,
+  /http:\/\/(?:192\.168|10\.|172\.(?:1[6-9]|2\d|3[01]))\.\d+\.\d+:\d+/,
+];
 
 // The runtimeVersion of app.json can be a string or a policy such as
 // { "policy": "appVersion" }.
@@ -232,7 +283,62 @@ if (manifestServed) {
   );
 }
 
-// ------------------------------------- 4. the backend of the app is available
+// ----------------------- 4. the bundle served to Expo Go uses the right backend
+
+console.log('\nPublished bundle');
+
+const expectedApiUri = documentedApiUri(readme);
+const manifestParts = partsFromManifest(manifestBody);
+const launchAsset = manifestParts.manifest?.launchAsset;
+const assetAuthorization =
+  manifestParts.extensions?.assetRequestHeaders?.[launchAsset?.key]
+    ?.authorization;
+
+if (launchAsset?.url) {
+  const bundleResponse = await fetch(launchAsset.url, {
+    headers: {
+      // expo-updates sends the headers of the manifest request and the
+      // authorization token of the extensions when it downloads an asset.
+      'expo-platform': 'android',
+      'expo-runtime-version': qrRuntimeVersion,
+      'expo-channel-name': qrChannel,
+      ...(assetAuthorization ? { authorization: assetAuthorization } : {}),
+    },
+  });
+  const bundle = await bundleResponse.text();
+
+  console.log(
+    `  ..    GET ${launchAsset.url} -> ${bundleResponse.status} (${bundle.length} bytes)`,
+  );
+
+  const bundleDownloaded = check(
+    bundleResponse.status === 200 && bundle.length > 0,
+    `Expo Go can download the JavaScript bundle of the published update (HTTP ${bundleResponse.status})`,
+  );
+
+  if (bundleDownloaded) {
+    check(
+      bundle.includes(expectedApiUri),
+      `the published update requests the pre-deployed Rate Repository API of README.md (${expectedApiUri})`,
+    );
+
+    const localUri = localApiUriPatterns
+      .map((pattern) => bundle.match(pattern)?.[0])
+      .find(Boolean);
+
+    check(
+      !localUri,
+      `the published update does not request a local development API that only works on the machine it was published from${localUri ? ` (${localUri})` : ''}`,
+    );
+  }
+} else {
+  check(
+    false,
+    'the manifest describes the JavaScript bundle of the published update (launchAsset)',
+  );
+}
+
+// ------------------------------------- 5. the backend of the app is available
 
 console.log('\nRate Repository API');
 
