@@ -90,3 +90,11 @@ cd rate-repository-app
 npm install --no-save --no-audit --no-fund jsqr pngjs
 node scripts/verify-eas-update.mjs
 ```
+
+Validating the app's GraphQL documents against the pre-deployed production
+API (schema compatibility of the published updates):
+
+```sh
+cd rate-repository-app
+node scripts/check-prod-api.mjs
+```
