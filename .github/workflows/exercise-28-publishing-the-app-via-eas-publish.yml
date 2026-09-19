@@ -1,0 +1,113 @@
+name: "Exercise 28: Publishing the app via EAS Publish"
+
+# Exercise 28 publishes the final version of the application with EAS Update and
+# documents the deployment with a screenshot of the QR code in the README.md at
+# the root of the repository. The workflow:
+#
+#   1. checks that the application is configured as an EAS Update project, that
+#      is, that app.json contains the configuration written by
+#      `npx eas-cli@latest update:configure` (updates.url, extra.eas.projectId
+#      and runtimeVersion),
+#   2. resolves the app config with `npx expo config` and checks that it points
+#      to the EAS Update servers,
+#   3. decodes the QR code committed to the README.md, checks that it is an Expo
+#      Go deep link of the `main` branch of the EAS project and checks that the
+#      EAS Update servers really serve the update it points to. That is exactly
+#      what the course instructor does when inspecting the submission,
+#   4. runs the test suite, the linter and an Expo export of the application,
+#   5. publishes a new update to the `main` branch with EAS Update when the
+#      EXPO_TOKEN repository secret is available. Create the token at
+#      https://expo.dev/settings/access-tokens and add it at
+#      https://github.com/professionalwebsitedeveloper/part-10/settings/secrets/actions
+#
+# Without the EXPO_TOKEN secret the update has to be published locally with
+# `npx eas-cli@latest update --branch main --environment preview --message "..."`.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exercise-28-eas-publish:
+    name: Exercise 28 - Publishing the app via EAS Publish
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    defaults:
+      run:
+        working-directory: rate-repository-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rate-repository-app/package-lock.json
+
+      - name: Install dependencies
+        # Use `npm install` (not `npm ci`): the app depends on platform-specific
+        # optional packages (+@emnapi/runtime), so the committed lockfile, which
+        # is generated on a local machine, must be reconciled for the runner's OS
+        # before running the checks.
+        run: npm install --no-audit --no-fund
+
+      - name: Check the application is configured as an EAS Update project
+        run: |
+          test -f app.json
+          test -f eas.json
+          grep -q '"updates"' app.json
+          grep -q '"projectId"' app.json
+          grep -q '"runtimeVersion"' app.json
+          grep -q 'u.expo.dev' app.json
+          grep -q '"preview"' eas.json
+          grep -q '"channel": "main"' eas.json
+          grep -q 'EXPO_PUBLIC_APOLLO_URI' src/utils/apolloClient.js
+
+      - name: Resolve the app config
+        # Resolving the configuration also proves that Expo accepts the EAS Update
+        # configuration of app.json.
+        run: npx expo config --type public --json > "$RUNNER_TEMP/app-config.json"
+
+      - name: Check the resolved app config points to the EAS Update servers
+        run: |
+          node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/app-config.json","utf8"));const id=c.extra?.eas?.projectId??"";const url=c.updates?.url??"";if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)){console.error("app.json is missing the EAS project id written by npx eas-cli@latest update:configure:",id||"<missing>");process.exit(1);}if(!url.includes(id)){console.error("app.json updates.url does not point to the EAS project:",url);process.exit(1);}if(!c.runtimeVersion){console.error("The app config is missing runtimeVersion");process.exit(1);}console.log("EAS project:",id,"| updates.url:",url,"| runtimeVersion:",JSON.stringify(c.runtimeVersion));'
+
+      - name: Check the README documents the published application
+        run: |
+          test -f ../README.md
+          test -f ../qr-code.png
+          grep -q "qr-code.png" ../README.md
+          grep -qi "EAS Update" ../README.md
+          grep -q "u.expo.dev" ../README.md
+          grep -q "rate-repository-api-2.ext.ocp-prod-0.k8s.it.helsinki.fi" ../README.md
+
+      - name: Check the QR code opens the published application with Expo Go
+        run: |
+          npm install --no-save --no-audit --no-fund jsqr pngjs
+          node scripts/verify-eas-update.mjs
+
+      - name: Run tests
+        run: npm test -- --ci
+
+      - name: Run linter checks
+        run: npm run lint
+
+      - name: Verify the application builds
+        run: npx expo export --platform web
+
+      - name: Publish the update to the main branch with EAS Update
+        if: ${{ github.event_name != 'pull_request' && env.EXPO_TOKEN != '' }}
+        run: |
+          npx --yes eas-cli@latest whoami
+          npx --yes eas-cli@latest update \
+            --branch main \
+            --environment preview \
+            --message "Exercise 28: publish the final version of the application (${{ github.sha }})" \
+            --non-interactive

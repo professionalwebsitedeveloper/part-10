@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "rate-repository-app",
-    "slug": "rate-repository-app",
+    "slug": "chuol",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,6 +24,18 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b4c2ae0e-c003-4858-9b91-36462fd79c15"
+      }
+    },
+    "owner": "chuol123s-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b4c2ae0e-c003-4858-9b91-36462fd79c15"
     }
   }
 }
